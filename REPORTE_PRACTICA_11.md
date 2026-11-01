@@ -468,3 +468,16 @@ $ terraform destroy -auto-approve
 1. **Eficiencia de la Infraestructura como Código (IaC):** Terraform permitió declarar y desplegar recursos en dos proveedores de nube totalmente dispares (Cloudflare y Microsoft Azure) bajo un único grafo de dependencias, reduciendo el aprovisionamiento manual a una sola instrucción automatizada.
 2. **Arquitecturas Edge-Computing Híbridas:** Desplegar la capa de entrada en el Edge de Cloudflare proporciona protección DDoS, resolución Anycast ultrarrápida y almacenamiento serverless (D1), mientras que delegar tareas específicas a contenedores en Azure (ACI) ofrece compatibilidad con cualquier runtime estándar de la industria empaquetado en contenedores OCI.
 3. **Portabilidad de Contenedores:** La utilización de Podman en entornos Linux modernos (Fedora) demostró compatibilidad total con los estándares OCI de Docker, permitiendo la compilación y publicación directa a Azure Container Registry sin requerir daemons privilegiados en la máquina del desarrollador.
+
+---
+
+## 9. Referencias
+
+1. **HashiCorp.** (2026). *Terraform Documentation & CLI Reference*. HashiCorp Cloud Platform. Recuperado de: https://developer.hashicorp.com/terraform/docs
+2. **Cloudflare Inc.** (2026). *Cloudflare Terraform Provider (v5.x) Documentation*. Terraform Registry. Recuperado de: https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs
+3. **Cloudflare Inc.** (2026). *Cloudflare D1: Serverless SQL Database & Workers Bindings*. Cloudflare Developer Docs. Recuperado de: https://developers.cloudflare.com/d1/
+4. **Microsoft Learn.** (2026). *Azure Container Instances (ACI) and Azure Container Registry (ACR) Overview*. Microsoft Documentation. Recuperado de: https://learn.microsoft.com/es-es/azure/container-instances/
+5. **HashiCorp.** (2026). *Azure Resource Manager Provider (`azurerm`) for Terraform*. Terraform Registry. Recuperado de: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
+6. **Red Hat.** (2026). *Podman Documentation: The Daemonless and Rootless Container Engine*. Podman Project. Recuperado de: https://podman.io/docs
+7. **Cypher-27.** (2026). *infra-p11: Orquestación de Infraestructura Serverless y Contenedores Multi-Cloud con Terraform*. Repositorio en GitHub. Recuperado de: https://github.com/cypher-27/infra-p11
+
