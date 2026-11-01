@@ -11,11 +11,44 @@ A modern Infrastructure as Code (IaC) project orchestrating a hybrid **Multi-Clo
 
 ## Architecture Overview
 
+```mermaid
+flowchart TD
+    subgraph Client["Cliente / Navegador"]
+        User["Usuario / curl"]
+    end
+
+    subgraph Cloudflare["Cloudflare Edge Network"]
+        Worker["Cloudflare Worker (worker.js)"]
+        D1[("Cloudflare D1 Database (SQLite)")]
+    end
+
+    subgraph Azure["Microsoft Azure (East US)"]
+        subgraph RG["Resource Group: rg-practica11-iteso"]
+            ACR["Azure Container Registry (ACR)"]
+            ACI["Azure Container Instance (ACI)"]
+        end
+    end
+
+    subgraph Local["Entorno de Desarrollo Local"]
+        Terraform["Terraform CLI"]
+        Podman["Podman CLI"]
+    end
+
+    %% IaC Provisioning
+    Terraform -.->|"1. Deploy Worker & D1"| Cloudflare
+    Terraform -.->|"2. Deploy RG & ACR"| Azure
+    Podman -.->|"3. Push container image"| ACR
+    ACR -->|"4. Pull image"| ACI
+    Terraform -.->|"5. Bind FQDN to Worker"| Worker
+
+    %% Runtime traffic
+    User -->|"A. HTTP GET"| Worker
+    Worker -->|"B. D1 SQL persistence"| D1
+    Worker -->|"C. HTTP fetch() container"| ACI
+    ACI -->|"D. Container metrics"| Worker
+    Worker -->|"E. Unified JSON"| User
 ```
-[ HTTP GET Request ] ──► Cloudflare Edge (Worker: worker.js)
-                             ├──► Cloudflare D1 (SQLite visits table persistence)
-                             └──► Microsoft Azure (Azure Container Instances via private ACR)
-```
+
 
 1. **Edge Layer (Cloudflare):**
    - **Cloudflare Worker:** Serverless JavaScript runtime handling incoming HTTP requests.
