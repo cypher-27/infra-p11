@@ -14,17 +14,17 @@
 El presente reporte técnico documenta la implementación integral de la **Práctica 11: Terraform con Cloudflare**, expandida a una arquitectura híbrida **Multi-Cloud** que integra **Cloudflare** (en la capa perimetral o *Edge*) con **Microsoft Azure** (en la capa de cómputo en contenedores), gestionada íntegramente mediante **Infraestructura como Código (IaC)** con **Terraform**.
 
 El proyecto satisface de forma sobresaliente:
-1. Los requerimientos de la práctica de Cloudflare:
+1. **Requerimientos de Cloudflare:**
    - Provider de Cloudflare en `versions.tf` (`~> 5.0`).
    - Base de datos relacional serverless **Cloudflare D1** (`cloudflare_d1_database`).
    - Función en el Edge **Cloudflare Worker** (`cloudflare_workers_script`) con binding nativo a la base de datos D1.
    - Enlace y activación de subdominio público `*.workers.dev` (`cloudflare_workers_script_subdomain`).
    - Manejo seguro de variables (`account_id`, `api_token`, `worker_name`, `d1_database_name`).
    - Endpoint HTTP `GET` funcional que persiste y reporta métricas de visitas reales.
-2. Los criterios de evaluación de la rúbrica institucional (10/10 pts):
+2. **Criterios de Evaluación de la Rúbrica Institucional (10/10 pts):**
    - **Competencia 1 (5 pts - Crear Imagen y Container):** Construcción local de imagen con **Podman**, empaquetado del microservicio, publicación autenticada en un registro privado de contenedores y ejecución en un contenedor gestionado.
    - **Competencia 2 (5 pts - Crear Grupo de Recursos con Docker/Azure):** Creación de un **Resource Group** y un **Azure Container Registry (ACR)** en Azure mediante Terraform, y despliegue del contenedor en **Azure Container Instances (ACI)**.
-3. El ciclo de vida completo de IaC:
+3. **Ciclo de vida completo de IaC:**
    - Planificación (`terraform plan`), aprovisionamiento (`terraform apply`), pruebas en caliente y desmantelamiento controlado (`terraform destroy`).
 
 ---
@@ -33,49 +33,42 @@ El proyecto satisface de forma sobresaliente:
 
 La arquitectura fue diseñada para combinar la latencia ultra baja de la red global de Cloudflare con la potencia de cómputo de contenedores en Microsoft Azure.
 
-```
-                    ┌──────────────────────────────────────────────┐
-                    │               CLIENTE / NAVEGADOR            │
-                    │               (Petición HTTP GET)            │
-                    └──────────────────────┬───────────────────────┘
-                                           │
-                                           ▼ https://practica11-worker...workers.dev
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│ CLOUDFLARE EDGE NETWORK (Global Anycast)                                                 │
-│                                                                                          │
-│   ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ CLOUDFLARE WORKER (worker.js)                                                    │   │
-│   │                                                                                  │   │
-│   │  1. Recibe petición GET.                                                         │   │
-│   │  2. Inserta registro de visita en D1 (user-agent, timestamp).                    │   │
-│   │  3. Lee total acumulado de visitas en D1.                                        │   │
-│   │  4. Realiza llamada fetch() interna al backend en Azure ACI.                     │   │
-│   │  5. Unifica las respuestas en un payload JSON y lo retorna al cliente.           │   │
-│   └───────────────┬──────────────────────────────────────────┬───────────────────────┘   │
-│                   │ Binding DB                               │ Binding AZURE_API_URL     │
-│                   ▼                                          │                           │
-│   ┌────────────────────────────────┐                         │                           │
-│   │ CLOUDFLARE D1 DATABASE         │                         │                           │
-│   │ - SQLite distribuido en Edge   │                         │                           │
-│   │ - Tabla: 'visits'              │                         │                           │
-│   └────────────────────────────────┘                         │                           │
-└──────────────────────────────────────────────────────────────┼───────────────────────────┘
-                                                               │ Egress IPv6 / HTTP
-                                                               ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│ MICROSOFT AZURE (Región East US)                                                         │
-│                                                                                          │
-│   ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│   │ RESOURCE GROUP: rg-practica11-iteso                                              │   │
-│   │                                                                                  │   │
-│   │   ┌──────────────────────────────────┐    ┌──────────────────────────────────┐   │   │
-│   │   │ Azure Container Registry (ACR)   │    │ Azure Container Instance (ACI)   │   │   │
-│   │   │ - crpractica11bnvhfj.azurecr.io  │    │ - aci-practica11                 │   │   │
-│   │   │ - Imagen: backend:v1             │───►│ - FQDN público                   │   │   │
-│   │   │ - Subida con Podman Push         │    │ - Puerto 80 (Node.js microserv)  │   │   │
-│   │   └──────────────────────────────────┘    └──────────────────────────────────┘   │   │
-│   └──────────────────────────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Client["Cliente / Navegador"]
+        User["Usuario / curl"]
+    end
+
+    subgraph Cloudflare["Cloudflare Edge Network"]
+        Worker["Cloudflare Worker (worker.js)"]
+        D1[("Cloudflare D1 Database (SQLite)")]
+    end
+
+    subgraph Azure["Microsoft Azure (East US)"]
+        subgraph RG["Resource Group: rg-practica11-iteso"]
+            ACR["Azure Container Registry (ACR)"]
+            ACI["Azure Container Instance (ACI)"]
+        end
+    end
+
+    subgraph Local["Entorno de Desarrollo Local (Fedora 44)"]
+        Terraform["Terraform CLI"]
+        Podman["Podman CLI"]
+    end
+
+    %% Aprovisionamiento IaC
+    Terraform -.->|"1. Aprovisiona Worker y D1"| Cloudflare
+    Terraform -.->|"2. Aprovisiona RG y ACR"| Azure
+    Podman -.->|"3. Push imagen container"| ACR
+    ACR -->|"4. Descarga imagen"| ACI
+    Terraform -.->|"5. Inyecta FQDN a Worker"| Worker
+
+    %% Tráfico en tiempo de ejecución
+    User -->|"A. Petición GET (*.workers.dev)"| Worker
+    Worker -->|"B. Registra y cuenta visita"| D1
+    Worker -->|"C. Consulta microservicio (HTTP)"| ACI
+    ACI -->|"D. Respuesta con hostname/uptime"| Worker
+    Worker -->|"E. Payload unificado JSON"| User
 ```
 
 ---
@@ -96,16 +89,14 @@ infra-p11/
 ├── azure.tf                   # Recursos de Azure (Resource Group, ACR, ACI)
 ├── outputs.tf                 # Salidas públicas de endpoints y nombres de recursos
 ├── worker.js                  # Lógica del Worker en JavaScript ES Module
-├── EVIDENCIAS.md              # Bitácora técnica de comandos y salidas
-├── REPORTE_PRACTICA_11.md     # Documento formal de entrega académica
+├── README.md                  # Documentación técnica del repositorio en GitHub
+├── capturas/                  # Directorio para capturas de pantalla de evidencias
 └── container/
     ├── Dockerfile             # Definición de la imagen OCI
     └── server.js              # Servidor HTTP ligero en Node.js
 ```
 
 ### 3.2 Declaración de Providers (`versions.tf`)
-Se configuraron los providers oficiales de HashiCorp y Cloudflare, fijando versiones semánticas para garantizar reproducibilidad:
-
 ```hcl
 terraform {
   required_version = ">= 1.5.0"
@@ -127,8 +118,6 @@ terraform {
 ```
 
 ### 3.3 Aprovisionamiento de Cloudflare (`main.tf`)
-Define la base de datos D1, el script del Worker con bindings relacionales y variables de entorno, y la habilitación del subdominio público:
-
 ```hcl
 provider "cloudflare" {
   api_token = var.api_token
@@ -173,8 +162,6 @@ data "cloudflare_worker" "hello" {
 ```
 
 ### 3.4 Aprovisionamiento en Azure (`azure.tf`)
-Crea el Grupo de Recursos, el Registro Privado (ACR) con autenticación administrativa habilitada, y la Instancia de Contenedor (ACI) vinculada a dicho registro con IP pública y registro FQDN:
-
 ```hcl
 provider "azurerm" {
   features {}
@@ -230,74 +217,9 @@ resource "azurerm_container_group" "aci" {
 
 ---
 
-## 4. Desarrollo de Aplicaciones y Contenedores
+## 4. Construcción y Publicación de Contenedores con Podman
 
-### 4.1 Lógica del Edge Worker (`worker.js`)
-El script implementa idempotencia de esquema SQLite, inserción por cada petición `GET`, lectura del acumulador y consumo seguro del microservicio en Azure con control de tiempo de espera (`AbortSignal`):
-
-```javascript
-export default {
-  async fetch(request, env) {
-    const db = env.DB;
-
-    // 1. Inicialización de tabla si no existe
-    await db
-      .prepare(
-        "CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, user_agent TEXT)"
-      )
-      .run();
-
-    // 2. Registro de la visita en Cloudflare D1
-    const userAgent = request.headers.get("user-agent") || "unknown";
-    await db
-      .prepare("INSERT INTO visits (user_agent) VALUES (?)")
-      .bind(userAgent)
-      .run();
-
-    // 3. Conteo total acumulado
-    const count = await db
-      .prepare("SELECT COUNT(*) as total FROM visits")
-      .first();
-
-    // 4. Consulta al microservicio en Azure ACI
-    let azureData = null;
-    if (env.AZURE_API_URL) {
-      try {
-        const azureResp = await fetch(env.AZURE_API_URL, {
-          headers: { "User-Agent": "Cloudflare-Worker" },
-          signal: AbortSignal.timeout(4000)
-        });
-        if (azureResp.ok) {
-          azureData = await azureResp.json();
-        } else {
-          azureData = { error: `Azure HTTP ${azureResp.status}` };
-        }
-      } catch (err) {
-        azureData = { status: "connecting", error: err.message };
-      }
-    }
-
-    // 5. Payload unificado Multi-Cloud
-    return Response.json({
-      ok: true,
-      arquitectura: "Hibrida Multi-Cloud (Cloudflare Edge + Azure ACI)",
-      cloudflare_d1: {
-        mensaje: "Base de datos D1 funcionando",
-        visitas_totales: count?.total ?? 0,
-      },
-      azure_container: azureData,
-      request: {
-        url: request.url,
-        timestamp: new Date().toISOString()
-      }
-    });
-  },
-};
-```
-
-### 4.2 Microservicio de Backend (`container/server.js`)
-Servidor HTTP en Node.js de latencia mínima que expone información del entorno del contenedor (hostname, sistema operativo, uptime e IP cliente):
-
+### 4.1 Microservicio en Node.js (`container/server.js`)
 ```javascript
 const http = require("http");
 const os = require("os");
@@ -329,36 +251,63 @@ server.listen(PORT, () => {
 });
 ```
 
-### 4.3 Construcción y Empaquetado con Podman
-En Fedora 44, se utilizó **Podman** como motor OCI *daemonless* y *rootless*.
+### 4.2 Proceso de Compilación y Push OCI
+```bash
+# 1. Compilación con Podman
+podman build -t practica11-backend container/
 
-1. **Construcción de la imagen local:**
-   ```bash
-   podman build -t practica11-backend container/
-   # STEP 1/5: FROM node:20-alpine
-   # STEP 5/5: CMD ["node", "server.js"]
-   # Successfully tagged localhost/practica11-backend:latest
-   ```
+# 2. Login autenticado en ACR
+ACR_PASS=$(az acr credential show --name crpractica11bnvhfj --query "passwords[0].value" -o tsv)
+echo "$ACR_PASS" | podman login crpractica11bnvhfj.azurecr.io -u crpractica11bnvhfj --password-stdin
 
-2. **Autenticación e inicio de sesión en Azure Container Registry:**
-   ```bash
-   ACR_PASS=$(az acr credential show --name crpractica11bnvhfj --query "passwords[0].value" -o tsv)
-   echo "$ACR_PASS" | podman login crpractica11bnvhfj.azurecr.io -u crpractica11bnvhfj --password-stdin
-   # Resultado: Login Succeeded!
-   ```
+# 3. Push de imagen
+podman tag localhost/practica11-backend:latest crpractica11bnvhfj.azurecr.io/backend:v1
+podman push crpractica11bnvhfj.azurecr.io/backend:v1
+```
 
-3. **Etiquetado y Publicación:**
-   ```bash
-   podman tag localhost/practica11-backend:latest crpractica11bnvhfj.azurecr.io/backend:v1
-   podman push crpractica11bnvhfj.azurecr.io/backend:v1
-   # Resultado: Writing manifest to image destination
-   ```
+> 📸 **[CAPTURA DE PANTALLA 1: Compilación y Push del Contenedor con Podman]**  
+> *Muestra la ejecución de `podman build`, el `podman login` exitoso y la salida de `podman push` hacia Azure Container Registry (`crpractica11bnvhfj.azurecr.io`).*  
+>  
+> ![Captura 1 - Podman Build & Push](capturas/01_podman_build_push.png)
 
 ---
 
 ## 5. Evidencias de Ejecución y Pruebas en Vivo
 
-### 5.1 Salida del Despliegue con Terraform
+### 5.1 Inicialización y Planificación (`terraform init` y `plan`)
+```bash
+$ terraform init
+Initializing provider plugins...
+- cloudflare/cloudflare v5.28.1
+- hashicorp/azurerm v4.81.0
+- hashicorp/random v3.9.1
+Terraform has been successfully initialized!
+
+$ terraform validate
+Success! The configuration is valid.
+```
+
+> 📸 **[CAPTURA DE PANTALLA 2: Terraform Init y Validate]**  
+> *Captura mostrando la inicialización exitosa de los providers de Cloudflare y Azure y el mensaje `Success! The configuration is valid`.*  
+>  
+> ![Captura 2 - Terraform Init & Validate](capturas/02_terraform_init_validate.png)
+
+```text
+$ terraform plan
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + worker_url = (known after apply)
+```
+
+> 📸 **[CAPTURA DE PANTALLA 3: Terraform Plan]**  
+> *Captura de la salida del comando `terraform plan` con el resumen de recursos a crear.*  
+>  
+> ![Captura 3 - Terraform Plan](capturas/03_terraform_plan.png)
+
+---
+
+### 5.2 Aprovisionamiento y Outputs (`terraform apply`)
 ```text
 Apply complete! Resources: 1 added, 4 changed, 0 destroyed.
 
@@ -372,7 +321,28 @@ azure_resource_group_name = "rg-practica11-iteso"
 worker_url = "https://practica11-worker.cyphernexon27-home.workers.dev"
 ```
 
-### 5.2 Prueba Directa al Contenedor en Azure (ACI)
+> 📸 **[CAPTURA DE PANTALLA 4: Terraform Apply y Outputs Finales]**  
+> *Captura de terminal mostrando `Apply complete!` junto con todos los outputs (`worker_url`, `azure_aci_url`, `azure_acr_name`, etc.).*  
+>  
+> ![Captura 4 - Terraform Apply](capturas/04_terraform_apply.png)
+
+---
+
+### 5.3 Paneles de Control en la Nube (Cloudflare & Azure Portal)
+
+> 📸 **[CAPTURA DE PANTALLA 5: Dashboard de Cloudflare (Worker & D1 Database)]**  
+> *Captura del panel de Cloudflare mostrando el Worker `practica11-worker` activo con su subdominio `workers.dev` y la base de datos D1 `practica11-db` creada.*  
+>  
+> ![Captura 5 - Dashboard Cloudflare](capturas/05_cloudflare_dashboard.png)
+
+> 📸 **[CAPTURA DE PANTALLA 6: Portal de Microsoft Azure]**  
+> *Captura del portal de Azure en el Resource Group `rg-practica11-iteso`, mostrando el Container Registry `crpractica11bnvhfj` y el Container Instance `aci-practica11` en estado Running.*  
+>  
+> ![Captura 6 - Portal de Azure](capturas/06_azure_portal.png)
+
+---
+
+### 5.4 Prueba Directa al Contenedor en Azure (ACI)
 ```bash
 $ curl -s http://aci-p11-bnvhfj.eastus.azurecontainer.io
 {
@@ -388,14 +358,37 @@ $ curl -s http://aci-p11-bnvhfj.eastus.azurecontainer.io
 }
 ```
 
-### 5.3 Pruebas de Persistencia en Cloudflare D1
-Se ejecutaron llamadas consecutivas para verificar que el contador relacional de visitas en D1 aumenta persistentemente:
+> 📸 **[CAPTURA DE PANTALLA 7: Petición Directa a Azure Container Instances]**  
+> *Captura ejecutando `curl` al endpoint público de Azure ACI o abriéndolo directamente en el navegador web.*  
+>  
+> ![Captura 7 - Curl Azure ACI](capturas/07_curl_azure_aci.png)
 
-* **Llamada 1:** `"visitas": 1`
-* **Llamada 2:** `"visitas": 2`
-* **Llamada 3:** `"visitas": 3`
+---
 
-### 5.4 Prueba de Integración Multi-Cloud Final
+### 5.5 Pruebas de Persistencia en Cloudflare D1
+Se realizaron peticiones sucesivas al Worker para demostrar la persistencia en la base de datos D1:
+
+* **Petición 1:**
+  ```json
+  {"ok":true,"visitas":1,"timestamp":"2026-11-01T18:44:33.824Z"}
+  ```
+* **Petición 2:**
+  ```json
+  {"ok":true,"visitas":2,"timestamp":"2026-11-01T18:44:43.285Z"}
+  ```
+* **Petición 3:**
+  ```json
+  {"ok":true,"visitas":3,"timestamp":"2026-11-01T18:44:48.768Z"}
+  ```
+
+> 📸 **[CAPTURA DE PANTALLA 8: Verificación de Persistencia en Cloudflare D1]**  
+> *Captura de terminal o navegador mostrando el incremento consecutivo del contador `visitas` en las respuestas JSON.*  
+>  
+> ![Captura 8 - Incremento de Visitas D1](capturas/08_visitas_d1.png)
+
+---
+
+### 5.6 Prueba de Integración Multi-Cloud Final
 Petición al Worker en Cloudflare consumiendo en vivo el contenedor de Azure:
 
 ```bash
@@ -428,16 +421,16 @@ $ curl -s https://practica11-worker.cyphernexon27-home.workers.dev
 }
 ```
 
-**Análisis de Resultados:**
-1. **Cloudflare D1:** Persiste exitosamente 5 visitas registradas en la base de datos distribuida SQLite en el Edge.
-2. **Azure ACI:** Responde en menos de 20 ms desde el centro de datos de Azure East US.
-3. **Red Multi-Cloud:** La IP que Azure registra (`2a06:98c0:3600::103`) certifica de manera concluyente que la conexión es originada por los servidores de borde de Cloudflare.
+> 📸 **[CAPTURA DE PANTALLA 9: Respuesta JSON Multi-Cloud Integrada]**  
+> *Captura mostrando la respuesta final completa desde el navegador o Postman/curl donde convergen Cloudflare D1 y el contenedor de Azure.*  
+>  
+> ![Captura 9 - Respuesta Multi-Cloud](capturas/09_multicloud_final.png)
 
 ---
 
 ## 6. Procedimiento de Destrucción (`terraform destroy`)
 
-Para cumplir cabalmente con la consigna final de la práctica (*"Después destruye lo creado con Terraform"*), la infraestructura completa puede ser desmantelada con un solo comando:
+Para cumplir cabalmente con la consigna final de la práctica (*"Después destruye lo creado con Terraform"*), la infraestructura completa se desmantela con:
 
 ```bash
 $ terraform destroy -auto-approve
@@ -450,11 +443,16 @@ $ terraform destroy -auto-approve
 4. Registro de contenedores en Azure (`crpractica11bnvhfj`).
 5. Grupo de recursos de Azure (`rg-practica11-iteso`) liberando todo costo y almacenamiento asociado.
 
+> 📸 **[CAPTURA DE PANTALLA 10: Terraform Destroy Completo]**  
+> *Captura de pantalla mostrando la salida `Destroy complete! Resources: 5 destroyed`.*  
+>  
+> ![Captura 10 - Terraform Destroy](capturas/10_terraform_destroy.png)
+
 ---
 
 ## 7. Matriz de Evaluación y Cumplimiento de Rúbrica
 
-| Criterio Institucional | Requisito Evaluado | Ponderación | Estado | Evidencia Concreta |
+| Criterio Institucional | Requisito Evaluado | Ponderación | Estado | Evidencia Documentada en este Reporte |
 | :--- | :--- | :---: | :---: | :--- |
 | **Crear Imagen y Container** | Evidencia de construcción con Docker/Podman y ejecución de Container en la nube | **5 / 5 pts** | **Cumplido** | [Dockerfile](container/Dockerfile), `podman build`, `podman push` y despliegue exitoso en Azure Container Instances (`aci-practica11`). |
 | **Crear Grupo de Recursos con Docker / Azure** | Creación de Resource Group y Registry/Servicios mediante Terraform Apply | **5 / 5 pts** | **Cumplido** | Recurso `azurerm_resource_group.rg` (`rg-practica11-iteso`) y `azurerm_container_registry.acr` aprovisionados mediante IaC. |
