@@ -265,10 +265,9 @@ podman tag localhost/practica11-backend:latest crpractica11bnvhfj.azurecr.io/bac
 podman push crpractica11bnvhfj.azurecr.io/backend:v1
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 1: Compilación y Push del Contenedor con Podman]**  
-> *Muestra la ejecución de `podman build`, el `podman login` exitoso y la salida de `podman push` hacia Azure Container Registry (`crpractica11bnvhfj.azurecr.io`).*  
->  
-> ![Captura 1 - Podman Build & Push](capturas/01_podman_build_push.png)
+![Figura 1](capturas/01_podman_build_push.png)  
+*Figura 1. Compilación de la imagen del contenedor con Podman y publicación exitosa en Azure Container Registry.*
+
 
 ---
 
@@ -287,23 +286,25 @@ $ terraform validate
 Success! The configuration is valid.
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 2: Terraform Init y Validate]**  
-> *Captura mostrando la inicialización exitosa de los providers de Cloudflare y Azure y el mensaje `Success! The configuration is valid`.*  
->  
-> ![Captura 2 - Terraform Init & Validate](capturas/02_terraform_init_validate.png)
+![Figura 2](capturas/02_terraform_init_validate.png)  
+*Figura 2. Inicialización de providers con `terraform init` y validación de sintaxis con `terraform validate`.*
 
 ```text
 $ terraform plan
-Plan: 3 to add, 0 to change, 0 to destroy.
+Plan: 7 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + worker_url = (known after apply)
+  + azure_aci_fqdn            = (known after apply)
+  + azure_aci_url             = (known after apply)
+  + azure_acr_login_server    = (known after apply)
+  + azure_acr_name            = (known after apply)
+  + azure_resource_group_name = "rg-practica11-iteso"
+  + worker_url                = (known after apply)
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 3: Terraform Plan]**  
-> *Captura de la salida del comando `terraform plan` con el resumen de recursos a crear.*  
->  
-> ![Captura 3 - Terraform Plan](capturas/03_terraform_plan.png)
+![Figura 3](capturas/03_terraform_plan.png)  
+*Figura 3. Plan de ejecución con `terraform plan` proyectando los 7 recursos a crear en Cloudflare y Azure.*
+
 
 ---
 
@@ -313,38 +314,32 @@ Apply complete! Resources: 1 added, 4 changed, 0 destroyed.
 
 Outputs:
 
-azure_aci_fqdn = "aci-p11-bnvhfj.eastus.azurecontainer.io"
-azure_aci_url = "http://aci-p11-bnvhfj.eastus.azurecontainer.io"
-azure_acr_login_server = "crpractica11bnvhfj.azurecr.io"
-azure_acr_name = "crpractica11bnvhfj"
+azure_aci_fqdn = "aci-p11-556td0.eastus.azurecontainer.io"
+azure_aci_url = "http://aci-p11-556td0.eastus.azurecontainer.io"
+azure_acr_login_server = "crpractica11556td0.azurecr.io"
+azure_acr_name = "crpractica11556td0"
 azure_resource_group_name = "rg-practica11-iteso"
 worker_url = "https://practica11-worker.cyphernexon27-home.workers.dev"
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 4: Terraform Apply y Outputs Finales]**  
-> *Captura de terminal mostrando `Apply complete!` junto con todos los outputs (`worker_url`, `azure_aci_url`, `azure_acr_name`, etc.).*  
->  
-> ![Captura 4 - Terraform Apply](capturas/04_terraform_apply.png)
+![Figura 4](capturas/04_terraform_apply.png)  
+*Figura 4. Despliegue completado con `terraform apply` y generación de las URLs y outputs públicos.*
 
 ---
 
 ### 5.3 Paneles de Control en la Nube (Cloudflare & Azure Portal)
 
-> 📸 **[CAPTURA DE PANTALLA 5: Dashboard de Cloudflare (Worker & D1 Database)]**  
-> *Captura del panel de Cloudflare mostrando el Worker `practica11-worker` activo con su subdominio `workers.dev` y la base de datos D1 `practica11-db` creada.*  
->  
-> ![Captura 5 - Dashboard Cloudflare](capturas/05_cloudflare_dashboard.png)
+![Figura 5](capturas/05_cloudflare_dashboard.png)  
+*Figura 5. Panel de Cloudflare mostrando el Worker activo en `workers.dev` y la base de datos D1 creada.*
 
-> 📸 **[CAPTURA DE PANTALLA 6: Portal de Microsoft Azure]**  
-> *Captura del portal de Azure en el Resource Group `rg-practica11-iteso`, mostrando el Container Registry `crpractica11bnvhfj` y el Container Instance `aci-practica11` en estado Running.*  
->  
-> ![Captura 6 - Portal de Azure](capturas/06_azure_portal.png)
+![Figura 6](capturas/06_azure_portal.png)  
+*Figura 6. Portal de Azure con el Resource Group, Container Registry y Container Instance en estado Running.*
 
 ---
 
 ### 5.4 Prueba Directa al Contenedor en Azure (ACI)
 ```bash
-$ curl -s http://aci-p11-bnvhfj.eastus.azurecontainer.io
+$ curl -s http://aci-p11-556td0.eastus.azurecontainer.io
 {
   "service": "azure-container-backend",
   "cloud": "Microsoft Azure",
@@ -358,10 +353,9 @@ $ curl -s http://aci-p11-bnvhfj.eastus.azurecontainer.io
 }
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 7: Petición Directa a Azure Container Instances]**  
-> *Captura ejecutando `curl` al endpoint público de Azure ACI o abriéndolo directamente en el navegador web.*  
->  
-> ![Captura 7 - Curl Azure ACI](capturas/07_curl_azure_aci.png)
+![Figura 7](capturas/07_curl_azure_aci.png)  
+*Figura 7. Petición HTTP GET directa al contenedor en Azure ACI respondiendo en estado online.*
+
 
 ---
 
@@ -381,10 +375,8 @@ Se realizaron peticiones sucesivas al Worker para demostrar la persistencia en l
   {"ok":true,"visitas":3,"timestamp":"2026-11-01T18:44:48.768Z"}
   ```
 
-> 📸 **[CAPTURA DE PANTALLA 8: Verificación de Persistencia en Cloudflare D1]**  
-> *Captura de terminal o navegador mostrando el incremento consecutivo del contador `visitas` en las respuestas JSON.*  
->  
-> ![Captura 8 - Incremento de Visitas D1](capturas/08_visitas_d1.png)
+![Figura 8](capturas/08_visitas_d1.png)  
+*Figura 8. Pruebas con `curl` al Worker demostrando el incremento persistente de visitas en Cloudflare D1.*
 
 ---
 
@@ -421,10 +413,8 @@ $ curl -s https://practica11-worker.cyphernexon27-home.workers.dev
 }
 ```
 
-> 📸 **[CAPTURA DE PANTALLA 9: Respuesta JSON Multi-Cloud Integrada]**  
-> *Captura mostrando la respuesta final completa desde el navegador o Postman/curl donde convergen Cloudflare D1 y el contenedor de Azure.*  
->  
-> ![Captura 9 - Respuesta Multi-Cloud](capturas/09_multicloud_final.png)
+![Figura 9](capturas/09_multicloud_final.png)  
+*Figura 9. Respuesta JSON final en el navegador integrando Cloudflare D1 y el contenedor de Azure en vivo.*
 
 ---
 
@@ -440,13 +430,12 @@ $ terraform destroy -auto-approve
 1. Cloudflare Workers Script (`practica11-worker`) y su subdominio en `workers.dev`.
 2. Base de datos Cloudflare D1 (`practica11-db`).
 3. Instancia de contenedor en Azure (`aci-practica11`).
-4. Registro de contenedores en Azure (`crpractica11bnvhfj`).
+4. Registro de contenedores en Azure (`crpractica11556td0`).
 5. Grupo de recursos de Azure (`rg-practica11-iteso`) liberando todo costo y almacenamiento asociado.
 
-> 📸 **[CAPTURA DE PANTALLA 10: Terraform Destroy Completo]**  
-> *Captura de pantalla mostrando la salida `Destroy complete! Resources: 5 destroyed`.*  
->  
-> ![Captura 10 - Terraform Destroy](capturas/10_terraform_destroy.png)
+![Figura 10](capturas/10_terraform_destroy.png)  
+*Figura 10. Destrucción total y automatizada de los recursos de Cloudflare y Azure con `terraform destroy`.*
+
 
 ---
 
