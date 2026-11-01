@@ -18,8 +18,14 @@ resource "cloudflare_workers_script" "hello" {
       name = "DB"
       type = "d1"
       id   = cloudflare_d1_database.app.id
+    },
+    {
+      name = "AZURE_API_URL"
+      type = "plain_text"
+      text = "http://${azurerm_container_group.aci.fqdn}"
     }
   ]
+
 }
 
 resource "cloudflare_workers_script_subdomain" "hello" {
