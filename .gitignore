@@ -22,3 +22,10 @@ override.tf.json
 # CLI configuration files
 .terraformrc
 terraform.rc
+
+# Document exports and artifacts
+*.pdf
+*.html
+EVIDENCIAS.md
+
+
