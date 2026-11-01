@@ -1,0 +1,5 @@
+# Ejemplo de variables para Cloudflare
+account_id       = "tu_account_id_aqui"
+api_token        = "tu_api_token_aqui"
+worker_name      = "practica11-worker"
+d1_database_name = "practica11-db"
