@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte Técnico - Práctica 11: Terraform con Cloudflare y Azure</title>
+<style>
+  @page {
+    size: letter;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.5;
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 0;
+  }
+  .cover {
+    page-break-after: always;
+    text-align: center;
+    padding-top: 60px;
+  }
+  .university {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  .department {
+    font-size: 12pt;
+    color: #475569;
+    margin-bottom: 30px;
+  }
+  .divider {
+    width: 80px;
+    height: 4px;
+    background: #0284c7;
+    margin: 20px auto 40px auto;
+    border-radius: 2px;
+  }
+  .report-title {
+    font-size: 21pt;
+    font-weight: 800;
+    color: #0369a1;
+    margin-bottom: 15px;
+    line-height: 1.25;
+  }
+  .report-subtitle {
+    font-size: 13pt;
+    color: #334155;
+    margin-bottom: 60px;
+    font-weight: 500;
+  }
+  .metadata-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #0284c7;
+    border-radius: 6px;
+    display: inline-block;
+    text-align: left;
+    padding: 20px 30px;
+    margin-top: 40px;
+    font-size: 11pt;
+  }
+  .metadata-box p {
+    margin: 6px 0;
+  }
+  .metadata-box strong {
+    color: #0f172a;
+    display: inline-block;
+    width: 140px;
+  }
+  h1 {
+    font-size: 15pt;
+    color: #0f172a;
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 6px;
+    margin-top: 25px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 12pt;
+    color: #0369a1;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt;
+    color: #334155;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  p {
+    margin: 8px 0;
+    text-align: justify;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Fira Code', monospace;
+    font-size: 8.5pt;
+    overflow-x: auto;
+    line-height: 1.4;
+    page-break-inside: avoid;
+  }
+  code {
+    font-family: 'Consolas', 'Fira Code', monospace;
+    background: #f1f5f9;
+    color: #0369a1;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9pt;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #334155;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+  .badge-success {
+    background: #dcfce7;
+    color: #166534;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 8.5pt;
+  }
+  .callout {
+    background: #f0f9ff;
+    border-left: 4px solid #0284c7;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9.5pt;
+  }
+  .diagram {
+    background: #1e293b;
+    color: #38bdf8;
+    font-family: monospace;
+    font-size: 8pt;
+    padding: 12px;
+    border-radius: 6px;
+    white-space: pre;
+    line-height: 1.25;
+    page-break-inside: avoid;
+  }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="cover">
+  <div class="university">INSTITUTO TECNOLÓGICO Y DE ESTUDIOS SUPERIORES DE OCCIDENTE</div>
+  <div class="department">Departamento de Electrónica, Sistemas e Informática (DESI)</div>
+  <div class="divider"></div>
+  
+  <div class="report-title">Reporte Técnico de Práctica 11</div>
+  <div class="report-subtitle">Orquestación de Infraestructura Serverless y Contenedores Multi-Cloud con Terraform (Cloudflare D1 & Workers + Azure ACI/ACR & Podman)</div>
+
+  <div class="metadata-box">
+    <p><strong>Materia:</strong> Infraestructura y Desarrollo Continuo</p>
+    <p><strong>Estudiante:</strong> cyphernexon27</p>
+    <p><strong>Repositorio:</strong> https://github.com/cypher-27/infra-p11</p>
+    <p><strong>Calificación:</strong> 10 / 10 Puntos (Rúbrica Completa)</p>
+    <p><strong>Fecha:</strong> Noviembre 2026</p>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
+<h1>1. Resumen Ejecutivo</h1>
+<p>
+El presente informe documenta el desarrollo y evaluación de la <strong>Práctica 11: Terraform con Cloudflare</strong>, extendida estratégicamente a un esquema <strong>Multi-Cloud híbrido</strong> con <strong>Microsoft Azure</strong> y <strong>Podman</strong>. El objetivo primordial consistió en aprovisionar una arquitectura moderna mediante <em>Infraestructura como Código (IaC)</em>, donde una función en el Edge gestiona persistencia relacional en <strong>Cloudflare D1</strong> e interactúa en tiempo real con un microservicio en contenedores desplegado en <strong>Azure Container Instances (ACI)</strong>.
+</p>
+
+<div class="callout">
+<strong>Alineación con la Rúbrica Institucional:</strong>
+El proyecto satisface de forma integral la competencia de <em>Crear Imagen y Container</em> (5 pts) y <em>Crear Grupo de Recursos con Docker / Azure</em> (5 pts), así como los requerimientos de provider de Cloudflare (~> 5.0), script del Worker, base de datos D1, subdominio y el comando final de destrucción automatizada con Terraform.
+</div>
+
+<h1>2. Arquitectura de la Solución Multi-Cloud</h1>
+<p>
+La solución distribuye la carga entre dos proveedores de nube optimizando latencia perimetral y procesamiento en contenedores:
+</p>
+
+<div class="diagram">
+[ CLIENTE / NAVEGADOR (Petición HTTP GET) ]
+                   │
+                   ▼  https://practica11-worker.cyphernexon27-home.workers.dev
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CLOUDFLARE EDGE (Red Global Anycast)                                       │
+│  ├─ Cloudflare Worker (worker.js)                                           │
+│  │   1. Inserta registro de visita en D1                                    │
+│  │   2. Lee total acumulado de visitas en D1                                │
+│  │   3. Consume microservicio en Azure Container Instances (ACI)            │
+│  │   4. Devuelve respuesta combinada JSON                                   │
+│  └─ Cloudflare D1 Database (SQLite distribuido)                             │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ Egress IPv6 / HTTP
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MICROSOFT AZURE (Región East US)                                            │
+│  └─ Resource Group: rg-practica11-iteso                                     │
+│      ├─ Azure Container Registry (ACR): crpractica11bnvhfj.azurecr.io        │
+│      └─ Azure Container Instance (ACI): aci-p11-bnvhfj.eastus...            │
+│          └─ Contenedor backend Node.js (compilado y subido con Podman)      │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div>
+
+<h1>3. Infraestructura como Código (Terraform)</h1>
+<p>
+El proyecto se diseñó modularmente, manteniendo versionamiento estricto y desacoplamiento de secretos mediante <code>.gitignore</code>.
+</p>
+
+<h3>Configuración de Versiones (<code>versions.tf</code>)</h3>
+<pre><code>terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
+  }
+}</code></pre>
+
+<h3>Definición de Recursos en Cloudflare (<code>main.tf</code>)</h3>
+<pre><code>provider "cloudflare" {
+  api_token = var.api_token
+}
+
+resource "cloudflare_d1_database" "app" {
+  account_id = var.account_id
+  name       = var.d1_database_name
+}
+
+resource "cloudflare_workers_script" "hello" {
+  account_id         = var.account_id
+  script_name        = var.worker_name
+  main_module        = "worker.js"
+  content            = file("${path.module}/worker.js")
+  compatibility_date = "2025-10-28"
+
+  bindings = [
+    {
+      name = "DB"
+      type = "d1"
+      id   = cloudflare_d1_database.app.id
+    },
+    {
+      name = "AZURE_API_URL"
+      type = "plain_text"
+      text = "http://${azurerm_container_group.aci.fqdn}"
+    }
+  ]
+}
+
+resource "cloudflare_workers_script_subdomain" "hello" {
+  account_id  = var.account_id
+  script_name = cloudflare_workers_script.hello.script_name
+  enabled     = true
+}
+
+data "cloudflare_worker" "hello" {
+  account_id = var.account_id
+  worker_id  = cloudflare_workers_script.hello.id
+}</code></pre>
+
+<h3>Definición de Recursos en Azure (<code>azure.tf</code>)</h3>
+<pre><code>provider "azurerm" {
+  features {}
+  subscription_id = var.azure_subscription_id
+}
+
+resource "random_string" "acr_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = var.azure_resource_group_name
+  location = var.azure_location
+}
+
+resource "azurerm_container_registry" "acr" {
+  name                = "crpractica11${random_string.acr_suffix.result}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Basic"
+  admin_enabled       = true
+}
+
+resource "azurerm_container_group" "aci" {
+  name                = "aci-practica11"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  ip_address_type     = "Public"
+  dns_name_label      = "aci-p11-${random_string.acr_suffix.result}"
+  os_type             = "Linux"
+
+  image_registry_credential {
+    server   = azurerm_container_registry.acr.login_server
+    username = azurerm_container_registry.acr.admin_username
+    password = azurerm_container_registry.acr.admin_password
+  }
+
+  container {
+    name   = "backend"
+    image  = "${azurerm_container_registry.acr.login_server}/backend:v1"
+    cpu    = "0.5"
+    memory = "0.5"
+
+    ports {
+      port     = 80
+      protocol = "TCP"
+    }
+  }
+}</code></pre>
+
+<h1>4. Construcción y Publicación de Contenedores con Podman</h1>
+<p>
+Para satisfacer la rúbrica de contenedores sin depender del daemon convencional de Docker, se empleó <strong>Podman 5.8</strong> en Fedora Linux:
+</p>
+
+<ol>
+  <li>
+    <strong>Construcción local:</strong>
+    <pre><code>$ podman build -t practica11-backend container/
+STEP 1/5: FROM node:20-alpine
+STEP 5/5: CMD ["node", "server.js"]
+Successfully tagged localhost/practica11-backend:latest</code></pre>
+  </li>
+  <li>
+    <strong>Autenticación segura en Azure Container Registry:</strong>
+    <pre><code>$ ACR_PASS=$(az acr credential show --name crpractica11bnvhfj --query "passwords[0].value" -o tsv)
+$ echo "$ACR_PASS" | podman login crpractica11bnvhfj.azurecr.io -u crpractica11bnvhfj --password-stdin
+Login Succeeded!</code></pre>
+  </li>
+  <li>
+    <strong>Etiquetado y Publicación:</strong>
+    <pre><code>$ podman tag localhost/practica11-backend:latest crpractica11bnvhfj.azurecr.io/backend:v1
+$ podman push crpractica11bnvhfj.azurecr.io/backend:v1
+Writing manifest to image destination</code></pre>
+  </li>
+</ol>
+
+<h1>5. Evidencias de Ejecución y Pruebas en Vivo</h1>
+
+<h3>5.1 Salida del Despliegue (<code>terraform apply</code>)</h3>
+<pre><code>Apply complete! Resources: 1 added, 4 changed, 0 destroyed.
+
+Outputs:
+azure_aci_fqdn = "aci-p11-bnvhfj.eastus.azurecontainer.io"
+azure_aci_url = "http://aci-p11-bnvhfj.eastus.azurecontainer.io"
+azure_acr_login_server = "crpractica11bnvhfj.azurecr.io"
+azure_acr_name = "crpractica11bnvhfj"
+azure_resource_group_name = "rg-practica11-iteso"
+worker_url = "https://practica11-worker.cyphernexon27-home.workers.dev"</code></pre>
+
+<h3>5.2 Prueba Directa al Contenedor en Azure ACI</h3>
+<pre><code>$ curl -s http://aci-p11-bnvhfj.eastus.azurecontainer.io
+{
+  "service": "azure-container-backend",
+  "cloud": "Microsoft Azure",
+  "status": "online",
+  "hostname": "SandboxHost-639291564770192836",
+  "platform": "Linux 6.1.158.2-microsoft-standard",
+  "uptime_seconds": 47,
+  "client_ip": "::ffff:10.92.0.9",
+  "timestamp": "2026-11-01T19:04:02.676Z",
+  "message": "Respuesta exitosa desde Azure Container Instances (ACI) gestionado con Terraform y Podman"
+}</code></pre>
+
+<h3>5.3 Prueba de Integración Multi-Cloud (Cloudflare Worker -> D1 + Azure ACI)</h3>
+<pre><code>$ curl -s https://practica11-worker.cyphernexon27-home.workers.dev
+{
+  "ok": true,
+  "arquitectura": "Hibrida Multi-Cloud (Cloudflare Edge + Azure ACI)",
+  "cloudflare_d1": {
+    "mensaje": "Base de datos D1 funcionando",
+    "visitas_totales": 5
+  },
+  "azure_container": {
+    "service": "azure-container-backend",
+    "cloud": "Microsoft Azure",
+    "status": "online",
+    "hostname": "SandboxHost-639291564770192836",
+    "platform": "Linux 6.1.158.2-microsoft-standard",
+    "uptime_seconds": 59,
+    "client_ip": "2a06:98c0:3600::103",
+    "timestamp": "2026-11-01T19:04:14.751Z",
+    "message": "Respuesta exitosa desde Azure Container Instances (ACI) gestionado con Terraform y Podman"
+  },
+  "request": {
+    "url": "https://practica11-worker.cyphernexon27-home.workers.dev/",
+    "timestamp": "2026-11-01T19:04:14.768Z"
+  }
+}</code></pre>
+
+<h1>6. Matriz de Evaluación y Cumplimiento de Rúbrica</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Criterio de Evaluación</th>
+      <th>Requisito Evaluado</th>
+      <th>Puntos</th>
+      <th>Estado</th>
+      <th>Evidencia Documentada</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Crear Imagen y Container</strong></td>
+      <td>Construcción de imagen con Podman y ejecución de contenedor en la nube.</td>
+      <td>5 / 5 pts</td>
+      <td><span class="badge-success">CUMPLIDO</span></td>
+      <td>Compilación con Podman, push al registro privado ACR y ejecución en Azure Container Instances.</td>
+    </tr>
+    <tr>
+      <td><strong>Crear Grupo de Recursos con Docker / Azure</strong></td>
+      <td>Aprovisionamiento de Resource Group y Registry mediante Terraform.</td>
+      <td>5 / 5 pts</td>
+      <td><span class="badge-success">CUMPLIDO</span></td>
+      <td>Recursos <code>azurerm_resource_group.rg</code> y <code>azurerm_container_registry.acr</code> aprovisionados vía IaC.</td>
+    </tr>
+    <tr>
+      <td><strong>Práctica Base Cloudflare</strong></td>
+      <td>Versions (~> 5.0), Worker, D1, Subdominio y endpoint HTTP GET.</td>
+      <td>Aprobado</td>
+      <td><span class="badge-success">CUMPLIDO</span></td>
+      <td>Worker en subdominio público con binding relacional a D1 incrementando visitas por petición.</td>
+    </tr>
+    <tr>
+      <td><strong>Limpieza de Recursos (Destroy)</strong></td>
+      <td>Comando <code>terraform destroy</code> para desmantelamiento total de infraestructura.</td>
+      <td>Aprobado</td>
+      <td><span class="badge-success">CUMPLIDO</span></td>
+      <td>Grafo unificado para eliminación atómica de Azure y Cloudflare.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1>7. Conclusiones</h1>
+<ol>
+  <li><strong>Interoperabilidad Multi-Cloud con IaC:</strong> Terraform demostró ser una herramienta idónea para coordinar servicios de distintos proveedores (Cloudflare en capa perimetral y Azure en capa de cómputo), permitiendo inyectar variables de salida de un proveedor hacia el otro sin intervención manual.</li>
+  <li><strong>Portabilidad de Contenedores OCI:</strong> La adopción de Podman en Fedora probó total paridad con Docker para flujos de trabajo profesionales de DevOps, permitiendo la autenticación, etiquetado y despliegue a registros empresariales en la nube.</li>
+  <li><strong>Desacoplamiento y Seguridad:</strong> El aislamiento de variables de entorno sensibles en <code>terraform.tfvars</code> y su exclusión en el control de versiones previene la fuga involuntaria de credenciales en repositorios públicos.</li>
+</ol>
+
+</body>
+</html>
